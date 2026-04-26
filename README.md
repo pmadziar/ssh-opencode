@@ -16,6 +16,7 @@ The image includes:
 - Bash
 - Node.js and npm
 - OpenCode CLI
+- OpenAI Codex CLI (`codex`)
 - npm-check-updates (`ncu`)
 - .NET 10 SDK
 - Git and GitHub CLI
@@ -28,7 +29,7 @@ The image includes:
 - `buid.ps1` copies your Windows SSH public key, rebuilds the Docker image, tags it as `ssh-opencode:latest`, and prunes build cache.
 - `Dockerfile` defines the Alpine-based development image.
 - `docker-compose.yml` runs the prebuilt image with SSH port mapping, persistent Docker volumes, and Windows bind mounts.
-- `docker-entrypoint.sh` generates persistent SSH host keys on first container start and then launches `sshd`.
+- `docker-entrypoint.sh` generates persistent SSH host keys on first container start, links persisted shell/Git config files, and then launches `sshd`.
 - `pawel.omp.json` is the oh-my-posh theme copied into the image.
 - `DockerWslDiskMgmt.md` documents optional Docker Desktop WSL disk compaction steps.
 
@@ -118,7 +119,7 @@ Stop and remove the container plus named volumes:
 docker compose down -v
 ```
 
-Removing volumes deletes persisted OpenCode/config data, `/root/code`, and SSH host keys.
+Removing volumes deletes persisted OpenCode/config data, Git config, shell history, `/root/code`, and SSH host keys.
 
 ## Rebuild Workflow
 
@@ -145,6 +146,11 @@ The Compose file mounts:
 
 Docker Compose prefixes named volume names with the project name unless configured otherwise. For this directory, Docker usually creates names such as `ssh-opencode_local`, `ssh-opencode_config`, `ssh-opencode_sshhostkeys`, and `ssh-opencode_code`.
 
+On startup, `docker-entrypoint.sh` links these files from the persisted `config` volume into root's home directory:
+
+- `/root/.config/.bash_history` -> `/root/.bash_history`
+- `/root/.config/.gitconfig` -> `/root/.gitconfig`
+
 ## SSH Host Keys
 
 SSH host keys are generated on first container start by `docker-entrypoint.sh` and stored in the `sshhostkeys` volume at `/etc/ssh/host_keys`.
@@ -162,7 +168,7 @@ docker exec -it ssh-opencode bash
 Verify key tools:
 
 ```powershell
-docker exec -it ssh-opencode bash -lc "node --version && npm --version && opencode --version && ncu --version && dotnet --version && git --version && gh --version"
+docker exec -it ssh-opencode bash -lc "node --version && npm --version && opencode --version && codex --version && ncu --version && dotnet --version && git --version && gh --version"
 ```
 
 ## Logs
@@ -189,8 +195,6 @@ The shell sets:
 - `LANGUAGE=en_GB:en`
 - `LC_ALL=en_GB.UTF-8`
 - `TERM=xterm-truecolor`
-- `ASPNETCORE_Kestrel__Certificates__Default__Path=/root/.aspnet/https/aspnetapp.pfx`
-- `ASPNETCORE_Kestrel__Certificates__Default__Password=pawel`
 
 The login shell also runs:
 
@@ -198,16 +202,6 @@ The login shell also runs:
 - `oh-my-posh`
 - `opencode models --refresh`
 - `ncu -g`
-
-## ASP.NET Development Certificate
-
-The image creates a self-signed certificate during build and stores it at:
-
-```text
-/root/.aspnet/https/aspnetapp.pfx
-```
-
-The password is `pawel`, and the related ASP.NET Core environment variables are preconfigured in the image and shell startup.
 
 ## Common Workflow
 
@@ -229,4 +223,5 @@ docker compose down
 - The script name is currently `buid.ps1`.
 - The image runs `sshd` as the main container process.
 - `/etc/motd` is emptied during image build.
-- `docker-entrypoint.sh` links `/root/.bash_history` to `/root/.config/.bash_history`.
+- The image no longer creates or configures an ASP.NET development certificate during build.
+- `docker-entrypoint.sh` links `/root/.bash_history` to `/root/.config/.bash_history` and `/root/.gitconfig` to `/root/.config/.gitconfig`.
