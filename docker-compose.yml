@@ -1,0 +1,21 @@
+services:
+  ssh-opencode:
+    image: ssh-opencode
+    container_name: ssh-opencode
+    hostname: opencode
+    user: "0:0"
+    ports:
+      - "2222:22"
+    volumes:
+      - local:/root/.local
+      - config:/root/.config
+      - sshhostkeys:/etc/ssh/host_keys
+      - code:/root/code
+      - c:\:/mnt/c:ro
+      - C:\temp:/root/temp
+
+volumes:
+  local:
+  config:
+  sshhostkeys:
+  code:
