@@ -25,9 +25,6 @@ RUN apk add --no-cache \
     unzip \
  && update-ca-certificates
 
-ENV ASPNETCORE_Kestrel__Certificates__Default__Path=/root/.aspnet/https/aspnetapp.pfx \
-    ASPNETCORE_Kestrel__Certificates__Default__Password=pawel
-
 RUN set -eux; \
     arch="$(apk --print-arch)"; \
     case "$arch" in \
@@ -35,26 +32,12 @@ RUN set -eux; \
       aarch64) opencode_arch='arm64' ;; \
       *) echo "Unsupported architecture: $arch" >&2; exit 1 ;; \
     esac; \
-    npm install -g npm-check-updates opencode-ai "opencode-linux-${opencode_arch}-musl"; \
+    npm install -g npm-check-updates @openai/codex opencode-ai "opencode-linux-${opencode_arch}-musl"; \
     npm_root="$(npm root -g)"; \
     install -m 755 "${npm_root}/opencode-linux-${opencode_arch}-musl/bin/opencode" "${npm_root}/opencode-ai/bin/.opencode"
 
 RUN set -eux; \
     curl -fsSL https://ohmyposh.dev/install.sh | bash -s -- -d /usr/local/bin
-
-RUN set -eux; \
-    mkdir -p /root/.aspnet/https /usr/local/share/ca-certificates; \
-    openssl req -x509 -nodes -newkey rsa:2048 -days 3650 \
-      -keyout /root/.aspnet/https/aspnetapp.key \
-      -out /root/.aspnet/https/aspnetapp.crt \
-      -subj '/CN=localhost'; \
-    openssl pkcs12 -export \
-      -out /root/.aspnet/https/aspnetapp.pfx \
-      -inkey /root/.aspnet/https/aspnetapp.key \
-      -in /root/.aspnet/https/aspnetapp.crt \
-      -passout pass:pawel; \
-    cp /root/.aspnet/https/aspnetapp.crt /usr/local/share/ca-certificates/aspnetapp.crt; \
-    update-ca-certificates
 
 COPY pawel.omp.json /root/.poshthemes/pawel.omp.json
 COPY docker-entrypoint.sh /usr/local/bin/docker-entrypoint.sh
@@ -92,8 +75,6 @@ RUN set -eux; \
         'export LANGUAGE=en_GB:en' \
         'export LC_ALL=en_GB.UTF-8' \
         'export TERM=xterm-truecolor' \
-        'export ASPNETCORE_Kestrel__Certificates__Default__Path=/root/.aspnet/https/aspnetapp.pfx' \
-        'export ASPNETCORE_Kestrel__Certificates__Default__Password=pawel' \
         'fastfetch' \
         'eval "$(oh-my-posh init bash --config /root/.poshthemes/pawel.omp.json)"' \
         'opencode models --refresh > /dev/null 2>&1' \

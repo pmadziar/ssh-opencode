@@ -15,5 +15,6 @@ chmod 600 /etc/ssh/host_keys/ssh_host_*_key
 chmod 644 /etc/ssh/host_keys/ssh_host_*_key.pub
 
 ln -s /root/.config/.bash_history /root/.bash_history
+ln -s /root/.config/.gitconfig /root/.gitconfig
 
 exec /usr/sbin/sshd -D -e
