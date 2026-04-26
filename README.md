@@ -1,6 +1,16 @@
 # ssh-opencode
 
-Docker image and Docker Compose setup for a root-based Alpine development container with:
+Docker image and Docker Compose setup for a root-based Alpine development container reachable over SSH.
+
+The intended workflow is:
+
+1. Build the image with `buid.ps1` from Windows PowerShell.
+2. Run the already-built image with `docker compose`.
+3. SSH into the running container as `root` using your copied public key.
+
+## Included Tools
+
+The image includes:
 
 - OpenSSH server
 - Bash
@@ -11,255 +21,212 @@ Docker image and Docker Compose setup for a root-based Alpine development contai
 - Git and GitHub CLI
 - fastfetch
 - oh-my-posh with the `pawel.omp.json` theme
+- common CLI tools such as `curl`, `jq`, `fd`, `ripgrep`, and `sqlite3`
 
 ## Files
 
-- `Dockerfile` builds the image named `ssh-opencode`
-- `docker-compose.yml` runs the container with persistent volumes and bind mounts
-- `docker-entrypoint.sh` generates persistent SSH host keys on first container start and then launches `sshd`
-- `pawel.omp.json` is the oh-my-posh theme copied into the image
+- `buid.ps1` copies your Windows SSH public key, rebuilds the Docker image, tags it as `ssh-opencode:latest`, and prunes build cache.
+- `Dockerfile` defines the Alpine-based development image.
+- `docker-compose.yml` runs the prebuilt image with SSH port mapping, persistent Docker volumes, and Windows bind mounts.
+- `docker-entrypoint.sh` generates persistent SSH host keys on first container start and then launches `sshd`.
+- `pawel.omp.json` is the oh-my-posh theme copied into the image.
+- `DockerWslDiskMgmt.md` documents optional Docker Desktop WSL disk compaction steps.
 
 ## Requirements
 
-Make sure the following are installed on the host machine:
+Install these on the Windows host:
 
-- Docker
+- Docker Desktop
 - Docker Compose plugin (`docker compose`)
+- PowerShell
+- An SSH key at `C:\Users\<your-user>\.ssh\id_ed25519.pub`
 
-You should also build and run from this directory:
+This project is expected to be available at:
 
-```bash
-/mnt/c/code/opencode
+```text
+C:\code\ssh-opencode
 ```
+
+The build script copies your public key into this directory as `id_ed25519.pub` before running `docker build`. The `Dockerfile` then copies that file into `/root/.ssh/authorized_keys`.
 
 ## Build The Image
 
-Build the image manually with:
+Run the build from Windows PowerShell in the project directory:
 
-```bash
-docker build -t ssh-opencode /mnt/c/code/opencode
+```powershell
+./buid.ps1
 ```
 
-If you are already in the project directory, you can also run:
+`buid.ps1` performs these steps:
 
-```bash
-docker build -t ssh-opencode .
-```
+- Creates a timestamped image tag such as `ssh-opencode:202604261430`.
+- Copies `C:\Users\$env:USERNAME\.ssh\id_ed25519.pub` to `C:\code\ssh-opencode\id_ed25519.pub`.
+- Removes existing local images matching `ssh-opencode:*`.
+- Builds the image with `--build-arg USERNAME=$env:USERNAME`, `--no-cache`, and `--debug`.
+- Tags the timestamped image as `ssh-opencode:latest`.
+- Runs `docker builder prune -f`.
+
+The Compose file uses `image: ssh-opencode`, which resolves to `ssh-opencode:latest`. Re-run `buid.ps1` whenever you change the image contents or want to refresh the copied SSH public key.
 
 ## Start With Docker Compose
 
-The Compose file starts one container:
+Start the container in the background:
+
+```powershell
+docker compose up -d
+```
+
+The Compose service uses:
 
 - service name: `ssh-opencode`
 - container name: `ssh-opencode`
 - hostname: `opencode`
+- image: `ssh-opencode:latest`
 - SSH port mapping: host `2222` -> container `22`
+- container user: `root`
 
-Start the container in the background:
-
-```bash
-docker compose up -d
-```
-
-Or with an explicit file path:
-
-```bash
-docker compose -f /mnt/c/code/opencode/docker-compose.yml up -d
-```
-
-## Stop The Container
-
-```bash
-docker compose down
-```
-
-## Rebuild After Dockerfile Changes
-
-If you change the `Dockerfile`, rebuild the image and recreate the container:
-
-```bash
-docker build -t ssh-opencode .
-docker compose up -d --force-recreate
-```
-
-If you want Compose to rebuild first, run:
-
-```bash
-docker compose up -d --build
-```
+If the image does not exist yet, run `./buid.ps1` first. This project does not rely on Compose to build the image.
 
 ## SSH Login
 
-The container is configured to allow SSH login for the `root` user.
+The container is configured for SSH public key login as `root`.
 
-- username: `root`
-- password: `pawel`
-- SSH port on host: `2222`
-
-Connect with:
-
-```bash
+```powershell
 ssh root@localhost -p 2222
 ```
 
+Password login is disabled in `sshd_config`:
+
+- `PermitRootLogin prohibit-password`
+- `PubkeyAuthentication yes`
+- `PasswordAuthentication no`
+- `KbdInteractiveAuthentication no`
+
+If SSH authentication fails, confirm that `C:\Users\<your-user>\.ssh\id_ed25519.pub` exists and rebuild the image with `./buid.ps1`.
+
+## Stop The Container
+
+Stop and remove the container while keeping volumes:
+
+```powershell
+docker compose down
+```
+
+Stop and remove the container plus named volumes:
+
+```powershell
+docker compose down -v
+```
+
+Removing volumes deletes persisted OpenCode/config data, `/root/code`, and SSH host keys.
+
+## Rebuild Workflow
+
+After changing `Dockerfile`, `docker-entrypoint.sh`, `pawel.omp.json`, or your host SSH public key, rebuild and recreate the container:
+
+```powershell
+docker compose down
+./buid.ps1
+docker compose up -d
+```
+
+If Docker cannot remove an old `ssh-opencode` image because a container is still using it, stop the container with `docker compose down` and run `./buid.ps1` again.
+
+## Volumes And Mounts
+
+The Compose file mounts:
+
+- named volume `local` -> `/root/.local`
+- named volume `config` -> `/root/.config`
+- named volume `sshhostkeys` -> `/etc/ssh/host_keys`
+- named volume `code` -> `/root/code`
+- host path `C:\` -> `/mnt/c` read-only
+- host path `C:\temp` -> `/root/temp`
+
+Docker Compose prefixes named volume names with the project name unless configured otherwise. For this directory, Docker usually creates names such as `ssh-opencode_local`, `ssh-opencode_config`, `ssh-opencode_sshhostkeys`, and `ssh-opencode_code`.
+
 ## SSH Host Keys
 
-SSH host keys are no longer baked into the image during `docker build`.
+SSH host keys are generated on first container start by `docker-entrypoint.sh` and stored in the `sshhostkeys` volume at `/etc/ssh/host_keys`.
 
-- They are generated on first container start by `docker-entrypoint.sh`
-- They are stored in the named volume `opencodesshhostkeys`
-- Rebuilding the image does not change the server fingerprint as long as that volume is kept
-
-This means you should only need to accept the host key once unless you remove volumes.
-
-If you remove volumes with `docker compose down -v`, the SSH host keys are deleted and your next start will generate a new fingerprint.
+Rebuilding the image does not change the server fingerprint as long as that volume is kept. Running `docker compose down -v` removes the host key volume, so the next start generates a new SSH server fingerprint.
 
 ## Run Commands Inside The Container
 
 Open a shell inside the running container:
 
-```bash
+```powershell
 docker exec -it ssh-opencode bash
 ```
 
-## Mounted Volumes And Paths
+Verify key tools:
 
-The Compose file mounts the following locations:
-
-- named volume `opencodelocal` -> `/root/.local`
-- named volume `opencodeconfig` -> `/root/.config/opencode`
-- named volume `opencodesshhostkeys` -> `/etc/ssh/host_keys`
-- host path `c:\code` -> `/root/code`
-- host path `c:\` -> `/mnt/c` (read-only)
-
-This means:
-
-- OpenCode local storage under `/root/.local` is persistent
-- OpenCode config under `/root/.config/opencode` is persistent
-- SSH host keys under `/etc/ssh/host_keys` are persistent
-- your host code directory is available in `/root/code`
-- the full Windows `C:` drive is available in `/mnt/c` as read-only
-
-## Default Shell Environment
-
-On login, the image configures root to use Bash and loads `/root/.bashrc` through `/root/.bash_profile`.
-
-The shell also sets:
-
-- `LANG=en_GB.UTF-8`
-- `LANGUAGE=en_GB:en`
-- `LC_ALL=en_GB.UTF-8`
-- `TERM=xterm-truecolor`
-
-The login shell also runs:
-
-- `fastfetch`
-- `oh-my-posh`
-- `ncu -g`
-
-## Installed Tools
-
-The image includes:
-
-- `bash`
-- `curl`
-- `git`
-- `gh`
-- `node`
-- `npm`
-- `opencode`
-- `ncu`
-- `.NET 10 SDK`
-- `python3`
-- `pip`
-- `jq`
-- `fd`
-- `ripgrep`
-- `make`
-- `gcc`
-- `g++`
-- `sqlite3`
-- `fastfetch`
-- `oh-my-posh`
-
-## Verify The Container Setup
-
-After the container starts, you can verify the main tools:
-
-```bash
-docker exec -it ssh-opencode bash -lc 'node --version && npm --version && opencode --version && ncu --version && dotnet --version && git --version && gh --version'
+```powershell
+docker exec -it ssh-opencode bash -lc "node --version && npm --version && opencode --version && ncu --version && dotnet --version && git --version && gh --version"
 ```
 
 ## Logs
 
-Show container logs:
+Show logs:
 
-```bash
+```powershell
 docker compose logs
 ```
 
 Follow logs live:
 
-```bash
+```powershell
 docker compose logs -f
 ```
 
-## Remove Container And Volumes
+## Default Shell Environment
 
-Stop and remove the container:
+On login, the image configures root to use Bash and loads `/root/.bashrc` through `/root/.bash_profile`.
 
-```bash
-docker compose down
+The shell sets:
+
+- `LANG=en_GB.UTF-8`
+- `LANGUAGE=en_GB:en`
+- `LC_ALL=en_GB.UTF-8`
+- `TERM=xterm-truecolor`
+- `ASPNETCORE_Kestrel__Certificates__Default__Path=/root/.aspnet/https/aspnetapp.pfx`
+- `ASPNETCORE_Kestrel__Certificates__Default__Password=pawel`
+
+The login shell also runs:
+
+- `fastfetch`
+- `oh-my-posh`
+- `opencode models --refresh`
+- `ncu -g`
+
+## ASP.NET Development Certificate
+
+The image creates a self-signed certificate during build and stores it at:
+
+```text
+/root/.aspnet/https/aspnetapp.pfx
 ```
 
-Stop and remove the container and named volumes:
-
-```bash
-docker compose down -v
-```
-
-This removes:
-
-- `opencodelocal`
-- `opencodeconfig`
-- `opencodesshhostkeys`
+The password is `pawel`, and the related ASP.NET Core environment variables are preconfigured in the image and shell startup.
 
 ## Common Workflow
 
-1. Build the image:
-
-```bash
-docker build -t ssh-opencode .
-```
-
-2. Start the container:
-
-```bash
+```powershell
+cd C:\code\ssh-opencode
+./buid.ps1
 docker compose up -d
-```
-
-3. SSH into it:
-
-```bash
 ssh root@localhost -p 2222
 ```
 
-4. Or open a shell directly:
+When finished:
 
-```bash
-docker exec -it ssh-opencode bash
-```
-
-5. Stop it when finished:
-
-```bash
+```powershell
 docker compose down
 ```
 
 ## Notes
 
+- The script name is currently `buid.ps1`.
 - The image runs `sshd` as the main container process.
-- `docker-entrypoint.sh` generates missing SSH host keys before starting `sshd`.
-- The container runs as `root`.
 - `/etc/motd` is emptied during image build.
-- ASP.NET certificate environment variables are preconfigured in the image.
+- `docker-entrypoint.sh` links `/root/.bash_history` to `/root/.config/.bash_history`.
