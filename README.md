@@ -5,8 +5,10 @@ Docker image and Docker Compose setup for a root-based Alpine development contai
 The intended workflow is:
 
 1. Build the image with `buid.ps1` from Windows PowerShell.
-2. Run the already-built image with `docker compose`.
+2. Run the already-built `ssh-opencode:latest` image with Docker Compose.
 3. SSH into the running container as `root` using your copied public key.
+
+Docker Compose is only used to run the container. It does not build the image.
 
 ## Included Tools
 
@@ -26,7 +28,7 @@ The image includes:
 
 ## Files
 
-- `buid.ps1` copies your Windows SSH public key, rebuilds the Docker image, tags it as `ssh-opencode:latest`, and prunes build cache.
+- `buid.ps1` is the build script. It copies your Windows SSH public key, removes existing local `ssh-opencode:*` images, rebuilds the Docker image, tags it as `ssh-opencode:latest`, and prunes build cache.
 - `Dockerfile` defines the Alpine-based development image.
 - `docker-compose.yml` runs the prebuilt image with SSH port mapping, persistent Docker volumes, and Windows bind mounts.
 - `docker-entrypoint.sh` generates persistent SSH host keys on first container start, links persisted shell/Git config files, and then launches `sshd`.
@@ -48,7 +50,18 @@ This project is expected to be available at:
 C:\code\ssh-opencode
 ```
 
-The build script copies your public key into this directory as `id_ed25519.pub` before running `docker build`. The `Dockerfile` then copies that file into `/root/.ssh/authorized_keys`.
+The build script copies your public key into this directory as `id_ed25519.pub` before running `docker build`. The `Dockerfile` then copies that file into `/root/.ssh/authorized_keys`. The copied `id_ed25519.pub` file is ignored by Git.
+
+## Quick Start
+
+From Windows PowerShell:
+
+```powershell
+cd C:\code\ssh-opencode
+./buid.ps1
+docker compose up -d
+ssh root@localhost -p 2222
+```
 
 ## Build The Image
 
@@ -67,7 +80,14 @@ Run the build from Windows PowerShell in the project directory:
 - Tags the timestamped image as `ssh-opencode:latest`.
 - Runs `docker builder prune -f`.
 
-The Compose file uses `image: ssh-opencode`, which resolves to `ssh-opencode:latest`. Re-run `buid.ps1` whenever you change the image contents or want to refresh the copied SSH public key.
+The script intentionally rebuilds without cache. Re-run `buid.ps1` whenever you change `Dockerfile`, `docker-entrypoint.sh`, `pawel.omp.json`, or want to refresh the copied SSH public key.
+
+Because the script removes local `ssh-opencode:*` images before building, stop any container using the image first if Docker reports that an image is still in use:
+
+```powershell
+docker compose down
+./buid.ps1
+```
 
 ## Start With Docker Compose
 
@@ -82,11 +102,11 @@ The Compose service uses:
 - service name: `ssh-opencode`
 - container name: `ssh-opencode`
 - hostname: `opencode`
-- image: `ssh-opencode:latest`
+- image: `ssh-opencode`, which Docker resolves as `ssh-opencode:latest`
 - SSH port mapping: host `2222` -> container `22`
 - container user: `root`
 
-If the image does not exist yet, run `./buid.ps1` first. This project does not rely on Compose to build the image.
+If the image does not exist yet, run `./buid.ps1` first. `docker compose up` will not build this project image because `docker-compose.yml` has no `build:` section.
 
 ## SSH Login
 
@@ -123,7 +143,7 @@ Removing volumes deletes persisted OpenCode/config data, Git config, shell histo
 
 ## Rebuild Workflow
 
-After changing `Dockerfile`, `docker-entrypoint.sh`, `pawel.omp.json`, or your host SSH public key, rebuild and recreate the container:
+After changing the image inputs or your host SSH public key, rebuild and recreate the container:
 
 ```powershell
 docker compose down
@@ -131,7 +151,7 @@ docker compose down
 docker compose up -d
 ```
 
-If Docker cannot remove an old `ssh-opencode` image because a container is still using it, stop the container with `docker compose down` and run `./buid.ps1` again.
+The image inputs are `Dockerfile`, `docker-entrypoint.sh`, `pawel.omp.json`, and the copied `id_ed25519.pub` file.
 
 ## Volumes And Mounts
 
@@ -221,7 +241,8 @@ docker compose down
 ## Notes
 
 - The script name is currently `buid.ps1`.
+- `buid.ps1` is expected to be run on Windows because it uses `C:\Users\$env:USERNAME` and `C:\code\ssh-opencode` paths.
 - The image runs `sshd` as the main container process.
 - `/etc/motd` is emptied during image build.
 - The image no longer creates or configures an ASP.NET development certificate during build.
-- `docker-entrypoint.sh` links `/root/.bash_history` to `/root/.config/.bash_history` and `/root/.gitconfig` to `/root/.config/.gitconfig`.
+- `docker-entrypoint.sh` links `/root/.bash_history` to `/root/.config/.bash_history` and `/root/.gitconfig` to `/root/.config/.gitconfig` when the container starts.
