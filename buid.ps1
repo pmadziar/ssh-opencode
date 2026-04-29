@@ -1,5 +1,7 @@
 $dat = [datetime]::Now.ToString("yyyyMMddHHmm")
 $tag = "ssh-opencode:$dat"
+Write-Host 'Pulling base image'
+docker pull alpine:latest
 Write-Host "Copying ssh public key..."
 Copy-Item -Path "C:\Users\$env:USERNAME\.ssh\id_ed25519.pub" -Destination "C:\code\ssh-opencode\id_ed25519.pub" -Force
 Write-Host "Removing old images with tag ssh-opencode:*"

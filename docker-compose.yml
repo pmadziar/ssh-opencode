@@ -1,5 +1,6 @@
 services:
   ssh-opencode:
+    build: .
     image: ssh-opencode
     container_name: ssh-opencode
     hostname: opencode

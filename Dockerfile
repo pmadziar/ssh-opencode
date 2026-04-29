@@ -60,7 +60,6 @@ RUN set -eux; \
       'AuthorizedKeysFile .ssh/authorized_keys' \
       'PasswordAuthentication no' \
       'KbdInteractiveAuthentication no' \
-      'UsePAM no' \
       'ChallengeResponseAuthentication no' \
       'UseDNS no' \
       'Subsystem sftp /usr/lib/ssh/sftp-server' \
