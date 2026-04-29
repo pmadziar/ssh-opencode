@@ -8,6 +8,8 @@ RUN apk add --no-cache \
     bash \
     ca-certificates \
     curl \
+    docker-cli \
+    docker-cli-compose \
     dotnet10-sdk \
     fd \
     fastfetch \
