@@ -25,6 +25,8 @@ RUN apk add --no-cache \
     sqlite \
     shadow \
     unzip \
+    bubblewrap \
+    bash-completion \
  && update-ca-certificates
 
 RUN set -eux; \
@@ -76,6 +78,9 @@ RUN set -eux; \
         'export LANGUAGE=en_GB:en' \
         'export LC_ALL=en_GB.UTF-8' \
         'export TERM=xterm-truecolor' \
+        'if [ -f /usr/share/bash-completion/bash_completion ]; then' \
+        '  . /usr/share/bash-completion/bash_completion' \
+        'fi' \
         'fastfetch' \
         'eval "$(oh-my-posh init bash --config /root/.poshthemes/pawel.omp.json)"' \
         'opencode models --refresh > /dev/null 2>&1' \

@@ -17,5 +17,6 @@ chmod 644 /etc/ssh/host_keys/ssh_host_*_key.pub
 ln -sfn /root/.config/.bash_history /root/.bash_history
 ln -sfn /root/.config/.gitconfig /root/.gitconfig
 ln -sfn /root/.config/.vscode-server /root/.vscode-server
+ln -sfn /root/.local/share/codex/ /root/.codex
 
 exec /usr/sbin/sshd -D -e
