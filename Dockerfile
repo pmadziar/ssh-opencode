@@ -77,7 +77,8 @@ RUN set -eux; \
         'export LANG=en_GB.UTF-8' \
         'export LANGUAGE=en_GB:en' \
         'export LC_ALL=en_GB.UTF-8' \
-        'export TERM=xterm-truecolor' \
+        'export TERM=xterm-256color' \
+        'export COLORTERM=truecolor' \
         'if [ -f /usr/share/bash-completion/bash_completion ]; then' \
         '  . /usr/share/bash-completion/bash_completion' \
         'fi' \

@@ -185,7 +185,8 @@ The shell exports:
 - `LANG=en_GB.UTF-8`
 - `LANGUAGE=en_GB:en`
 - `LC_ALL=en_GB.UTF-8`
-- `TERM=xterm-truecolor`
+- `TERM=xterm-256color`
+- `COLORTERM=truecolor`
 
 Interactive shell startup also loads bash completion, runs `fastfetch`, initializes `oh-my-posh`, refreshes OpenCode models in the background, and runs `ncu -g`.
 
