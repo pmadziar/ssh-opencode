@@ -27,6 +27,8 @@ RUN apk add --no-cache \
     unzip \
     bubblewrap \
     bash-completion \
+    bat \
+    fzf \
  && update-ca-certificates
 
 RUN set -eux; \
@@ -82,6 +84,7 @@ RUN set -eux; \
         'if [ -f /usr/share/bash-completion/bash_completion ]; then' \
         '  . /usr/share/bash-completion/bash_completion' \
         'fi' \
+        'eval "$(fzf --bash)"' \
         'fastfetch' \
         'eval "$(oh-my-posh init bash --config /root/.poshthemes/pawel.omp.json)"' \
         'opencode models --refresh > /dev/null 2>&1' \
