@@ -3,7 +3,7 @@ services:
     build: .
     image: ssh-opencode
     container_name: ssh-opencode
-    hostname: opencode
+    hostname: opencode-vps
     user: "0:0"
     environment:
       DOCKER_HOST: unix:///var/run/docker.sock
@@ -15,8 +15,8 @@ services:
       - config:/root/.config
       - sshhostkeys:/etc/ssh/host_keys
       - code:/root/code
-      - c:\:/mnt/c:ro
-      - C:\temp:/root/temp
+      - /:/mnt/host:ro
+      - $HOME/temp:/root/temp
 
 volumes:
   local:

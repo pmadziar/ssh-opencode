@@ -38,7 +38,7 @@ RUN set -eux; \
       aarch64) opencode_arch='arm64' ;; \
       *) echo "Unsupported architecture: $arch" >&2; exit 1 ;; \
     esac; \
-    npm install -g npm-check-updates @openai/codex opencode-ai "opencode-linux-${opencode_arch}-musl"; \
+    npm install -g npm-check-updates @openai/codex opencode-ai "opencode-linux-${opencode_arch}-musl" context-mode; \
     npm_root="$(npm root -g)"; \
     install -m 755 "${npm_root}/opencode-linux-${opencode_arch}-musl/bin/opencode" "${npm_root}/opencode-ai/bin/.opencode"
 
@@ -49,7 +49,7 @@ COPY pawel.omp.json /root/.poshthemes/pawel.omp.json
 COPY docker-entrypoint.sh /usr/local/bin/docker-entrypoint.sh
 
 RUN install -d -m 700 /root/.ssh
-COPY id_ed25519.pub /root/.ssh/authorized_keys
+COPY authorized_keys /root/.ssh/authorized_keys
 
 RUN set -eux; \
     chsh -s /bin/bash root; \
