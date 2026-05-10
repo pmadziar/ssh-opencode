@@ -52,6 +52,10 @@ RUN install -d -m 700 /root/.ssh
 COPY authorized_keys /root/.ssh/authorized_keys
 
 RUN set -eux; \
+     dotnet tool install --global dotnet-xscgen; \
+     dotnet tool install amazon.lambda.tools --global
+
+RUN set -eux; \
     chsh -s /bin/bash root; \
     mkdir -p /run/sshd /root/.ssh /etc/ssh/host_keys; \
     chmod 700 /root/.ssh; \
