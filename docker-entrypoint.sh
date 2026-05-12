@@ -16,11 +16,13 @@ chmod 644 /etc/ssh/host_keys/ssh_host_*_key.pub
 
 mkdir -p /root/.config/.vscode-server
 mkdir -p /root/.config/.codex
+mkdir -p /root/.config/.gitnexus
+[ -f /root/.config/.bash_history ] || touch /root/.config/.bash_history
+[ -f /root/.config/.gitconfig ]    || touch /root/.config/.gitconfig
 
-
-ln -sfn /root/.config/.bash_history /root/.bash_history
-ln -sfn /root/.config/.gitconfig /root/.gitconfig
-ln -sfn /root/.config/.vscode-server /root/.vscode-server
-ln -sfn /root/.config/.codex/ /root/.codex
-ln -sfn /root/.config/.gitnexus/ /root/.gitnexus
+ln -sfn /root/.config/.bash_history   /root/.bash_history
+ln -sfn /root/.config/.gitconfig      /root/.gitconfig
+ln -sfn /root/.config/.vscode-server  /root/.vscode-server
+ln -sfn /root/.config/.codex/         /root/.codex
+ln -sfn /root/.config/.gitnexus/      /root/.gitnexus
 exec /usr/sbin/sshd -D -e

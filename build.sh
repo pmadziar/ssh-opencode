@@ -7,7 +7,7 @@ dat=$(date +%Y%m%d%H%M)
 tag="ssh-opencode:$dat"
 
 echo "Pulling base image"
-docker pull alpine:latest
+docker pull ubuntu:latest
 
 echo "Removing old images with tag ssh-opencode:*"
 docker images --format '{{.Repository}}:{{.Tag}}' | grep '^ssh-opencode:' | xargs -r docker rmi

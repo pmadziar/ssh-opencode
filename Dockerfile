@@ -1,46 +1,58 @@
-FROM alpine:latest
+FROM ubuntu:latest
 
 ARG USERNAME
 
 ENV USERNAME=${USERNAME}
+ENV DEBIAN_FRONTEND=noninteractive
+ENV LANG=en_GB.UTF-8
+ENV LANGUAGE=en_GB:en
+ENV LC_ALL=en_GB.UTF-8
+ENV DOTNET_ROOT=/usr/share/dotnet
 
-RUN apk add --no-cache \
+RUN apt-get update && apt-get install -y --no-install-recommends \
     bash \
-    ca-certificates \
-    curl \
-    docker-cli \
-    docker-cli-compose \
-    dotnet10-sdk \
-    fd \
-    fastfetch \
-    git \
-    github-cli \
-    jq \
-    musl-locales \
-    nodejs \
-    npm \
-    openssl \
-    openssh \
-    ripgrep \
-    sqlite \
-    shadow \
-    unzip \
-    bubblewrap \
     bash-completion \
     bat \
+    bubblewrap \
+    ca-certificates \
+    curl \
+    docker.io \
+    docker-compose-v2 \
+    fastfetch \
+    fd-find \
     fzf \
- && update-ca-certificates
+    git \
+    gh \
+    jq \
+    locales \
+    openssh-server \
+    openssl \
+    ripgrep \
+    sqlite3 \
+    unzip \
+    && locale-gen en_GB.UTF-8 \
+    && update-ca-certificates \
+    && ln -sf /usr/bin/batcat /usr/local/bin/bat \
+    && ln -sf /usr/bin/fdfind /usr/local/bin/fd \
+    && apt-get clean \
+    && rm -rf /var/lib/apt/lists/*
 
 RUN set -eux; \
-    arch="$(apk --print-arch)"; \
+    curl -fsSL https://deb.nodesource.com/setup_25.x | bash -; \
+    apt-get install -y nodejs; \
+    apt-get clean; \
+    rm -rf /var/lib/apt/lists/*
+
+RUN set -eux; \
+    arch="$(dpkg --print-architecture)"; \
     case "$arch" in \
-      x86_64) opencode_arch='x64' ;; \
-      aarch64) opencode_arch='arm64' ;; \
+      amd64) opencode_arch='x64' ;; \
+      arm64) opencode_arch='arm64' ;; \
       *) echo "Unsupported architecture: $arch" >&2; exit 1 ;; \
     esac; \
-    npm install -g npm-check-updates @openai/codex opencode-ai "opencode-linux-${opencode_arch}-musl" context-mode gitnexus; \
+    npm install -g npm-check-updates @openai/codex opencode-ai "opencode-linux-${opencode_arch}" context-mode gitnexus; \
     npm_root="$(npm root -g)"; \
-    install -m 755 "${npm_root}/opencode-linux-${opencode_arch}-musl/bin/opencode" "${npm_root}/opencode-ai/bin/.opencode"
+    install -m 755 "${npm_root}/opencode-linux-${opencode_arch}/bin/opencode" "${npm_root}/opencode-ai/bin/.opencode"
 
 RUN set -eux; \
     curl -fsSL https://ohmyposh.dev/install.sh | bash -s -- -d /usr/local/bin
@@ -52,8 +64,13 @@ RUN install -d -m 700 /root/.ssh
 COPY authorized_keys /root/.ssh/authorized_keys
 
 RUN set -eux; \
-     dotnet tool install --global dotnet-xscgen; \
-     dotnet tool install amazon.lambda.tools --global
+    curl -fsSL https://dot.net/v1/dotnet-install.sh -o /tmp/dotnet-install.sh; \
+    chmod +x /tmp/dotnet-install.sh; \
+    /tmp/dotnet-install.sh --channel 10.0 --quality preview --install-dir /usr/share/dotnet; \
+    ln -s /usr/share/dotnet/dotnet /usr/local/bin/dotnet; \
+    rm /tmp/dotnet-install.sh; \
+    dotnet tool install --global dotnet-xscgen; \
+    dotnet tool install amazon.lambda.tools --global
 
 RUN set -eux; \
     chsh -s /bin/bash root; \
@@ -72,7 +89,7 @@ RUN set -eux; \
       'KbdInteractiveAuthentication no' \
       'ChallengeResponseAuthentication no' \
       'UseDNS no' \
-      'Subsystem sftp /usr/lib/ssh/sftp-server' \
+      'Subsystem sftp /usr/lib/openssh/sftp-server' \
       > /etc/ssh/sshd_config; \
     printf '%s\n' \
       'if [ -f ~/.bashrc ]; then' \
@@ -85,6 +102,7 @@ RUN set -eux; \
         'export LC_ALL=en_GB.UTF-8' \
         'export TERM=xterm-256color' \
         'export COLORTERM=truecolor' \
+        'export PATH="/usr/share/dotnet:$HOME/.dotnet/tools:$PATH"' \
         'if [ -f /usr/share/bash-completion/bash_completion ]; then' \
         '  . /usr/share/bash-completion/bash_completion' \
         'fi' \
