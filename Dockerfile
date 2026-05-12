@@ -38,7 +38,7 @@ RUN set -eux; \
       aarch64) opencode_arch='arm64' ;; \
       *) echo "Unsupported architecture: $arch" >&2; exit 1 ;; \
     esac; \
-    npm install -g npm-check-updates @openai/codex opencode-ai "opencode-linux-${opencode_arch}-musl" context-mode; \
+    npm install -g npm-check-updates @openai/codex opencode-ai "opencode-linux-${opencode_arch}-musl" context-mode gitnexus; \
     npm_root="$(npm root -g)"; \
     install -m 755 "${npm_root}/opencode-linux-${opencode_arch}-musl/bin/opencode" "${npm_root}/opencode-ai/bin/.opencode"
 

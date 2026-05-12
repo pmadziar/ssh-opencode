@@ -22,5 +22,5 @@ ln -sfn /root/.config/.bash_history /root/.bash_history
 ln -sfn /root/.config/.gitconfig /root/.gitconfig
 ln -sfn /root/.config/.vscode-server /root/.vscode-server
 ln -sfn /root/.config/.codex/ /root/.codex
-
+ln -sfn /root/.config/.gitnexus/ /root/.gitnexus
 exec /usr/sbin/sshd -D -e
